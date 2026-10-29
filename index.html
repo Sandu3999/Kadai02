@@ -1,164 +1,480 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>戦車 AR コントロール</title>
+
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+
   <style>
-    body { margin:0; overflow:hidden; font-family:Arial,sans-serif; }
-    #controls { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999; width:94%; max-width:420px; padding:12px; box-sizing:border-box; background:rgba(255,255,255,.94); border:1px solid rgba(0,0,0,.15); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.12); }
-    .movement-buttons { display:flex; gap:8px; margin-bottom:10px; }
-    button { flex:1; min-width:0; padding:12px 5px; border:0; border-radius:8px; color:white; font-size:15px; font-weight:bold; cursor:pointer; touch-action:manipulation; }
-    #forwardBtn { background:#218838; } #backwardBtn { background:#d97706; } #stopBtn { background:#dc3545; }
-    .select-box { width:100%; padding:11px; font-size:15px; border:1px solid #888; border-radius:8px; background:white; margin-bottom:8px; box-sizing:border-box; }
-    #status { font-size:13px; color:#333; margin-top:4px; }
-    button:active { transform:scale(.97); }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      width: 94%;
+      max-width: 420px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 3px 15px #0003;
+    }
+
+    .movement-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 5px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    #forwardBtn {
+      background: #198754;
+    }
+
+    #backwardBtn {
+      background: #d97706;
+    }
+
+    #stopBtn {
+      background: #dc3545;
+    }
+
+    .select-box {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: white;
+      font-size: 15px;
+    }
+
+    #status {
+      padding: 8px 4px 2px;
+      font-size: 13px;
+      color: #333;
+      overflow-wrap: anywhere;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:focus-visible,
+    select:focus-visible {
+      outline: 2px solid #198754;
+      outline-offset: 2px;
+    }
+
+    a-scene {
+      position: fixed;
+      inset: 0;
+    }
   </style>
 </head>
+
 <body>
+
   <div id="controls">
+
     <div class="movement-buttons">
-      <button id="forwardBtn" onclick="moveForward()">前進</button>
-      <button id="backwardBtn" onclick="moveBackward()">後退</button>
-      <button id="stopBtn" onclick="stopTank()">停止</button>
+      <button id="forwardBtn" type="button">▲ 前進</button>
+      <button id="backwardBtn" type="button">▼ 後退</button>
+      <button id="stopBtn" type="button">■ 停止</button>
     </div>
-    <select id="actionSelect" class="select-box" onchange="handleAction(this.value)">
-      <option value="">操作を選択 (ズーム・回転)</option>
+
+    <select id="actionSelect" class="select-box">
+      <option value="">操作を選択</option>
       <option value="zoomIn">拡大 (Zoom +)</option>
       <option value="zoomOut">縮小 (Zoom −)</option>
-      <option value="rotate">回転 (Rotate)</option>
+      <option value="rotateRight">右回転</option>
+      <option value="rotateLeft">左回転</option>
     </select>
-    <select id="animationSelect" class="select-box" onchange="playAnimation(this.value)">
+
+    <select id="animationSelect" class="select-box">
       <option value="">アニメーションを選択</option>
+      <option value="rotate">自動回転</option>
+      <option value="bounce">上下に動く</option>
+      <option value="patrol">回転しながら動く</option>
+      <option value="recoil">反動アニメーション</option>
     </select>
-    <div id="status">カメラをマーカーに向けてください</div>
+
+    <div id="status">
+      カメラを Hiro マーカーに向けてください
+    </div>
+
   </div>
 
-  <a-scene embedded vr-mode-ui="enabled:false" renderer="logarithmicDepthBuffer:true" arjs="sourceType:webcam; debugUIEnabled:false;">
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    tank-controller>
+
     <a-marker preset="hiro">
-      <a-entity id="tank" gltf-model="./Tank.glb" position="0 0 0" rotation="0 0 0" scale="0.5 0.5 0.5"></a-entity>
+
+      <a-entity
+    id="tank"
+    gltf-model="url(./Tank.glb)"
+    position="0 0.1 0"
+    rotation="0 0 0"
+    scale="0.1 0.1 0.1">
+    </a-entity>
     </a-marker>
+
     <a-entity camera></a-entity>
+
   </a-scene>
 
   <script>
-    const tank = document.getElementById('tank');
-    const statusText = document.getElementById('status');
-    const animationSelect = document.getElementById('animationSelect');
-    const actionSelect = document.getElementById('actionSelect');
-    const scene = document.querySelector('a-scene');
+    (() => {
+      "use strict";
 
-    let moveDirection = 0;
-    let animationClips = [];
-    let mixer = null;
-    const MOVE_SPEED = 0.8;
-    const MIN_SCALE = 0.1;
-    const MAX_SCALE = 2.0;
+      const tank = document.getElementById("tank");
+      const statusText = document.getElementById("status");
+      const actionSelect = document.getElementById("actionSelect");
+      const animationSelect = document.getElementById("animationSelect");
 
-    function setStatus(message) {
-      if (statusText) {
+      const INITIAL_SCALE = 0.1;
+      const MIN_SCALE = 0.1;
+      const MAX_SCALE = 2.0;
+      const MOVE_SPEED = 0.8;
+      const MOVE_DURATION = 500; // 0.5 seconds per click
+
+      let moveDirection = 0;
+      let moveTimer = null;
+      let modelReady = false;
+
+      let mixer = null;
+      let animationClips = [];
+      let activeAction = null;
+      let currentAnimation = "";
+
+      let basePosition = null;
+      let animationTime = 0;
+      let recoilStart = 0;
+
+      const status = (message) => {
         statusText.textContent = message;
-      }
-    }
+      };
 
-    tank.addEventListener('model-loaded', function (event) {
-      animationClips = event.detail.model.animations || [];
-      animationSelect.innerHTML = '<option value="">アニメーションを選択</option>';
+      // Register the controller before the scene starts.
+      AFRAME.registerComponent("tank-controller", {
+        init: function () {
+          this.lastTime = 0;
 
-      animationClips.forEach(function (clip, index) {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = clip.name || 'アニメーション ' + (index + 1);
-        animationSelect.appendChild(option);
+          // Use A-Frame's component tick lifecycle.
+          // This reliably updates movement and animations.
+        },
+
+        tick: function (time, delta) {
+          if (!modelReady || !tank.object3D) {
+            return;
+          }
+
+          const dt = Math.min((delta || 0) / 1000, 0.05);
+
+          if (dt <= 0) {
+            return;
+          }
+
+          // Forward and backward movement.
+          if (moveDirection !== 0) {
+            const direction = new THREE.Vector3(0, 0, 1)
+              .applyQuaternion(tank.object3D.quaternion);
+
+            tank.object3D.position.x +=
+              direction.x * moveDirection * MOVE_SPEED * dt;
+
+            tank.object3D.position.z +=
+              direction.z * moveDirection * MOVE_SPEED * dt;
+          }
+
+          // Play embedded GLB animations.
+          if (mixer) {
+            mixer.update(dt);
+          }
+
+          // Play built-in animations even when Tank.glb
+          // contains no animation clips.
+          if (currentAnimation === "rotate") {
+            tank.object3D.rotation.y += dt * 0.8;
+          }
+
+          if (currentAnimation === "patrol") {
+            tank.object3D.rotation.y += dt * 0.6;
+
+            tank.object3D.position.x +=
+              Math.sin(time * 0.001) * dt * 0.15;
+          }
+
+          if (currentAnimation === "bounce" && basePosition) {
+            animationTime += dt;
+
+            tank.object3D.position.y =
+              basePosition.y +
+              Math.abs(Math.sin(animationTime * 3)) * 0.18;
+          }
+
+          if (currentAnimation === "recoil" && basePosition) {
+            const elapsed = (performance.now() - recoilStart) / 1000;
+
+            if (elapsed < 0.25) {
+              tank.object3D.position.z =
+                basePosition.z + Math.sin(elapsed * 25) * 0.12;
+            } else {
+              tank.object3D.position.z = basePosition.z;
+              currentAnimation = "";
+              animationSelect.value = "";
+              status("反動アニメーションが終了しました");
+            }
+          }
+        }
       });
 
-      setStatus(animationClips.length ? '戦車モデルを読み込みました' : 'モデルを読み込みました。アニメーションがない場合があります');
-    });
+      // Load the GLB model.
+      tank.addEventListener("model-loaded", function (event) {
+        modelReady = true;
 
-    tank.addEventListener('model-error', function () {
-      setStatus('Tank.glb を読み込めません。ファイルの場所を確認してください');
-    });
+        basePosition = tank.object3D.position.clone();
 
-    function moveForward() {
-      moveDirection = -1;
-      setStatus('前進中...');
-    }
+        const gltfComponent = tank.components["gltf-model"];
 
-    function moveBackward() {
-      moveDirection = 1;
-      setStatus('後退中...');
-    }
+        animationClips =
+          (gltfComponent &&
+           gltfComponent.model &&
+           gltfComponent.model.animations) ||
+          (event.detail.model && event.detail.model.animations) ||
+          [];
 
-    function stopTank() {
-      moveDirection = 0;
-      setStatus('停止しました');
-    }
+        // Preserve the built-in animation options.
+        // Append animations embedded in Tank.glb.
+        animationSelect.innerHTML = `
+          <option value="">アニメーションを選択</option>
+          <option value="rotate">自動回転</option>
+          <option value="bounce">上下に動く</option>
+          <option value="patrol">回転しながら動く</option>
+          <option value="recoil">反動アニメーション</option>
+        `;
 
-    function handleAction(action) {
-      if (action === 'zoomIn') zoomIn();
-      else if (action === 'zoomOut') zoomOut();
-      else if (action === 'rotate') rotateTank();
-      actionSelect.value = '';
-    }
+        animationClips.forEach((clip, index) => {
+          const option = document.createElement("option");
 
-    scene.addEventListener('loaded', function () {
-      scene.addEventListener('tick', function (time, delta) {
-        if (typeof THREE === 'undefined' || !tank || !tank.object3D) {
+          option.value = "gltf:" + index;
+          option.textContent =
+            clip.name || "GLB アニメーション " + (index + 1);
+
+          animationSelect.appendChild(option);
+        });
+
+        if (animationClips.length > 0) {
+          mixer = new THREE.AnimationMixer(
+            gltfComponent.model
+          );
+
+          status(
+            "戦車モデルを読み込みました。GLB アニメーション: " +
+            animationClips.length
+          );
+        } else {
+          status(
+            "戦車モデルを読み込みました。アニメーションを選択できます"
+          );
+        }
+      });
+
+      tank.addEventListener("model-error", function (event) {
+        modelReady = false;
+
+        console.error("Tank.glb loading failed:", event.detail);
+
+        status(
+          "Tank.glb を読み込めません。ファイルの場所と名前を確認してください"
+        );
+      });
+
+      // Movement controls: move for 0.5 seconds per click, then stop.
+      function moveTank(direction) {
+        if (!modelReady) {
+          status("戦車モデルを読み込み中です");
           return;
         }
 
-        const seconds = Math.min(delta / 1000, 0.05);
+        clearTimeout(moveTimer);
+        moveDirection = direction;
+        status(direction === -1 ? "前進中..." : "後退中...");
 
-        if (moveDirection !== 0) {
-          const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(tank.object3D.quaternion);
-          tank.object3D.position.x += direction.x * moveDirection * MOVE_SPEED * seconds;
-          tank.object3D.position.z += direction.z * moveDirection * MOVE_SPEED * seconds;
+        moveTimer = setTimeout(function () {
+          moveDirection = 0;
+          status("停止しました");
+          moveTimer = null;
+        }, MOVE_DURATION);
+      }
+
+      document.getElementById("forwardBtn")
+        .addEventListener("click", function () {
+          moveTank(-1);
+        });
+
+      document.getElementById("backwardBtn")
+        .addEventListener("click", function () {
+          moveTank(1);
+        });
+
+      document.getElementById("stopBtn")
+        .addEventListener("click", function () {
+          clearTimeout(moveTimer);
+          moveTimer = null;
+          moveDirection = 0;
+          status("停止しました");
+        });
+
+      // Zoom and rotation controls.
+      actionSelect.addEventListener("change", function () {
+        if (!modelReady) {
+          status("戦車モデルを読み込み中です");
+          actionSelect.value = "";
+          return;
         }
 
-        if (mixer) {
-          mixer.update(seconds);
+        const scale = tank.object3D.scale.x;
+
+        switch (actionSelect.value) {
+          case "zoomIn": {
+            const next = Math.min(scale * 1.2, MAX_SCALE);
+
+            tank.object3D.scale.set(next, next, next);
+            status("拡大しました");
+            break;
+          }
+
+          case "zoomOut": {
+            const next = Math.max(scale / 1.2, MIN_SCALE);
+
+            tank.object3D.scale.set(next, next, next);
+            status("縮小しました");
+            break;
+          }
+
+          case "rotateRight":
+            tank.object3D.rotation.y +=
+              THREE.MathUtils.degToRad(15);
+
+            status("右に15度回転しました");
+            break;
+
+          case "rotateLeft":
+            tank.object3D.rotation.y -=
+              THREE.MathUtils.degToRad(15);
+
+            status("左に15度回転しました");
+            break;
         }
+
+        actionSelect.value = "";
       });
-    });
 
-    function zoomIn() {
-      const newScale = Math.min(tank.object3D.scale.x * 1.15, MAX_SCALE);
-      tank.object3D.scale.set(newScale, newScale, newScale);
-      setStatus('拡大しました');
-    }
+      // Animation controls.
+      animationSelect.addEventListener("change", function () {
+        const value = animationSelect.value;
 
-    function zoomOut() {
-      const newScale = Math.max(tank.object3D.scale.x * 0.87, MIN_SCALE);
-      tank.object3D.scale.set(newScale, newScale, newScale);
-      setStatus('縮小しました');
-    }
+        if (!value) {
+          return;
+        }
 
-    function rotateTank() {
-      tank.object3D.rotation.y += THREE.MathUtils.degToRad(15);
-      setStatus('戦車を回転しました');
-    }
+        if (!modelReady) {
+          status("戦車モデルを読み込み中です");
+          animationSelect.value = "";
+          return;
+        }
 
-    function playAnimation(value) {
-      if (value === '') return;
+        // Stop any previously playing GLB animation.
+        if (mixer) {
+          mixer.stopAllAction();
+          activeAction = null;
+        }
 
-      const clip = animationClips[Number(value)];
-      if (!clip) {
-        setStatus('アニメーションが見つかりません');
-        animationSelect.value = '';
-        return;
-      }
+        // Restore the baseline position before starting
+        // another built-in animation.
+        if (basePosition) {
+          tank.object3D.position.copy(basePosition);
+        }
 
-      if (!mixer) {
-        mixer = new THREE.AnimationMixer(tank.object3D);
-      }
+        animationTime = 0;
+        currentAnimation = "";
 
-      mixer.stopAllAction();
-      mixer.clipAction(clip).reset().play();
-      setStatus('再生中: ' + (clip.name || 'アニメーション ' + (Number(value) + 1)));
-      animationSelect.value = '';
-    }
+        if (value.startsWith("gltf:")) {
+          const index = Number(value.split(":")[1]);
+          const clip = animationClips[index];
+
+          if (!clip || !mixer) {
+            status("GLB アニメーションが見つかりません");
+            animationSelect.value = "";
+            return;
+          }
+
+          activeAction = mixer.clipAction(clip);
+          activeAction.reset();
+          activeAction.play();
+
+          status(
+            "再生中: " + (clip.name || "GLB アニメーション")
+          );
+
+        } else if (value === "rotate") {
+          currentAnimation = "rotate";
+          status("自動回転中...");
+
+        } else if (value === "bounce") {
+          currentAnimation = "bounce";
+          status("上下アニメーション再生中...");
+
+        } else if (value === "patrol") {
+          currentAnimation = "patrol";
+          status("パトロールアニメーション再生中...");
+
+        } else if (value === "recoil") {
+          currentAnimation = "recoil";
+          recoilStart = performance.now();
+          status("反動アニメーション再生中...");
+        }
+
+        animationSelect.value = "";
+      });
+
+    })();
   </script>
+
 </body>
 </html>
