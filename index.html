@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin:0; overflow:hidden; font-family:Arial,sans-serif; }
-    #controls { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999; width:94%; max-width:420px; padding:12px; box-sizing:border-box; background:rgba(255,255,255,.94); border-radius:12px; text-align:center; box-shadow:0 2px 10px #5555; }
+    #controls { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999; width:94%; max-width:420px; padding:12px; box-sizing:border-box; background:rgba(255,255,255,.94); border:1px solid rgba(0,0,0,.15); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.12); }
     .movement-buttons { display:flex; gap:8px; margin-bottom:10px; }
     button { flex:1; min-width:0; padding:12px 5px; border:0; border-radius:8px; color:white; font-size:15px; font-weight:bold; cursor:pointer; touch-action:manipulation; }
     #forwardBtn { background:#218838; } #backwardBtn { background:#d97706; } #stopBtn { background:#dc3545; }
@@ -48,6 +48,8 @@
     const statusText = document.getElementById('status');
     const animationSelect = document.getElementById('animationSelect');
     const actionSelect = document.getElementById('actionSelect');
+    const scene = document.querySelector('a-scene');
+
     let moveDirection = 0;
     let animationClips = [];
     let mixer = null;
@@ -55,25 +57,44 @@
     const MIN_SCALE = 0.1;
     const MAX_SCALE = 2.0;
 
-    tank.addEventListener('model-loaded', function(event) {
+    function setStatus(message) {
+      if (statusText) {
+        statusText.textContent = message;
+      }
+    }
+
+    tank.addEventListener('model-loaded', function (event) {
       animationClips = event.detail.model.animations || [];
       animationSelect.innerHTML = '<option value="">アニメーションを選択</option>';
-      animationClips.forEach(function(clip, index) {
+
+      animationClips.forEach(function (clip, index) {
         const option = document.createElement('option');
         option.value = index;
         option.textContent = clip.name || 'アニメーション ' + (index + 1);
         animationSelect.appendChild(option);
       });
-      statusText.textContent = animationClips.length ? '戦車モデルを読み込みました' : 'モデルを読み込みました。アニメーションがない場合があります';
+
+      setStatus(animationClips.length ? '戦車モデルを読み込みました' : 'モデルを読み込みました。アニメーションがない場合があります');
     });
 
-    tank.addEventListener('model-error', function() {
-      statusText.textContent = 'Tank.glb を読み込めません。ファイルの場所を確認してください';
+    tank.addEventListener('model-error', function () {
+      setStatus('Tank.glb を読み込めません。ファイルの場所を確認してください');
     });
 
-    function moveForward() { moveDirection = -1; statusText.textContent = '前進中...'; }
-    function moveBackward() { moveDirection = 1; statusText.textContent = '後退中...'; }
-    function stopTank() { moveDirection = 0; statusText.textContent = '停止しました'; }
+    function moveForward() {
+      moveDirection = -1;
+      setStatus('前進中...');
+    }
+
+    function moveBackward() {
+      moveDirection = 1;
+      setStatus('後退中...');
+    }
+
+    function stopTank() {
+      moveDirection = 0;
+      setStatus('停止しました');
+    }
 
     function handleAction(action) {
       if (action === 'zoomIn') zoomIn();
@@ -82,45 +103,60 @@
       actionSelect.value = '';
     }
 
-    const scene = document.querySelector('a-scene');
-    scene.addEventListener('loaded', function() {
-      scene.addEventListener('tick', function(time, delta) {
+    scene.addEventListener('loaded', function () {
+      scene.addEventListener('tick', function (time, delta) {
+        if (typeof THREE === 'undefined' || !tank || !tank.object3D) {
+          return;
+        }
+
         const seconds = Math.min(delta / 1000, 0.05);
+
         if (moveDirection !== 0) {
           const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(tank.object3D.quaternion);
           tank.object3D.position.x += direction.x * moveDirection * MOVE_SPEED * seconds;
           tank.object3D.position.z += direction.z * moveDirection * MOVE_SPEED * seconds;
         }
-        if (mixer) mixer.update(seconds);
+
+        if (mixer) {
+          mixer.update(seconds);
+        }
       });
     });
 
     function zoomIn() {
       const newScale = Math.min(tank.object3D.scale.x * 1.15, MAX_SCALE);
       tank.object3D.scale.set(newScale, newScale, newScale);
-      statusText.textContent = '拡大しました';
+      setStatus('拡大しました');
     }
+
     function zoomOut() {
       const newScale = Math.max(tank.object3D.scale.x * 0.87, MIN_SCALE);
       tank.object3D.scale.set(newScale, newScale, newScale);
-      statusText.textContent = '縮小しました';
+      setStatus('縮小しました');
     }
+
     function rotateTank() {
       tank.object3D.rotation.y += THREE.MathUtils.degToRad(15);
-      statusText.textContent = '戦車を回転しました';
+      setStatus('戦車を回転しました');
     }
+
     function playAnimation(value) {
       if (value === '') return;
+
       const clip = animationClips[Number(value)];
       if (!clip) {
-        statusText.textContent = 'アニメーションが見つかりません';
+        setStatus('アニメーションが見つかりません');
         animationSelect.value = '';
         return;
       }
-      if (!mixer) mixer = new THREE.AnimationMixer(tank.object3D);
+
+      if (!mixer) {
+        mixer = new THREE.AnimationMixer(tank.object3D);
+      }
+
       mixer.stopAllAction();
       mixer.clipAction(clip).reset().play();
-      statusText.textContent = '再生中: ' + (clip.name || 'アニメーション ' + (Number(value) + 1));
+      setStatus('再生中: ' + (clip.name || 'アニメーション ' + (Number(value) + 1)));
       animationSelect.value = '';
     }
   </script>
